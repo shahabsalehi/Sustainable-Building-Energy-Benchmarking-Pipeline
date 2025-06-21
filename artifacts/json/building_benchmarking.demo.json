@@ -1,0 +1,128 @@
+{
+  "pipeline": "sustainable_building_benchmarking",
+  "generated_at": "2025-11-28T10:48:17.980710+00:00",
+  "demo_mode": true,
+  "portfolio_summary": {
+    "total_buildings": 6,
+    "total_floor_area_m2": 28510,
+    "avg_energy_intensity_kwh_m2": 110.1,
+    "portfolio_co2_tons": 694.9,
+    "top_performer_pct": 50.0,
+    "needs_improvement_pct": 33.0
+  },
+  "full_portfolio_reference": {
+    "total_buildings": 12,
+    "total_floor_area_m2": 45680,
+    "note": "Full dataset available via paginated API"
+  },
+  "benchmark_categories": {
+    "energy_intensity": {
+      "excellent": "< 70 kWh/m\u00b2",
+      "good": "70-90 kWh/m\u00b2",
+      "average": "90-110 kWh/m\u00b2",
+      "poor": "> 110 kWh/m\u00b2"
+    },
+    "co2_intensity": {
+      "excellent": "< 15 kg/m\u00b2",
+      "good": "15-20 kg/m\u00b2",
+      "average": "20-25 kg/m\u00b2",
+      "poor": "> 25 kg/m\u00b2"
+    }
+  },
+  "buildings": [
+    {
+      "building_id": "BLD-001",
+      "name": "Main Office Tower",
+      "location": "Stockholm",
+      "floor_area_m2": 5200,
+      "building_type": "Office",
+      "year_built": 2018,
+      "energy_intensity_kwh_m2": 72.5,
+      "co2_intensity_kg_m2": 16.2,
+      "energy_percentile": 15,
+      "rating": "Excellent",
+      "certifications": [
+        "LEED Gold",
+        "BREEAM Excellent"
+      ]
+    },
+    {
+      "building_id": "BLD-002",
+      "name": "Research Center",
+      "location": "Uppsala",
+      "floor_area_m2": 3890,
+      "building_type": "Laboratory",
+      "year_built": 2015,
+      "energy_intensity_kwh_m2": 145.8,
+      "co2_intensity_kg_m2": 32.4,
+      "energy_percentile": 88,
+      "rating": "Poor",
+      "certifications": []
+    },
+    {
+      "building_id": "BLD-003",
+      "name": "Retail Complex",
+      "location": "Gothenburg",
+      "floor_area_m2": 4320,
+      "building_type": "Retail",
+      "year_built": 2020,
+      "energy_intensity_kwh_m2": 88.3,
+      "co2_intensity_kg_m2": 19.1,
+      "energy_percentile": 42,
+      "rating": "Good",
+      "certifications": [
+        "LEED Silver"
+      ]
+    },
+    {
+      "building_id": "BLD-004",
+      "name": "Hotel & Conference",
+      "location": "Malm\u00f6",
+      "floor_area_m2": 6100,
+      "building_type": "Hotel",
+      "year_built": 2012,
+      "energy_intensity_kwh_m2": 112.6,
+      "co2_intensity_kg_m2": 24.8,
+      "energy_percentile": 72,
+      "rating": "Average",
+      "certifications": [
+        "BREEAM Good"
+      ]
+    },
+    {
+      "building_id": "BLD-005",
+      "name": "Education Center",
+      "location": "Lund",
+      "floor_area_m2": 3200,
+      "building_type": "Educational",
+      "year_built": 2019,
+      "energy_intensity_kwh_m2": 68.2,
+      "co2_intensity_kg_m2": 14.6,
+      "energy_percentile": 12,
+      "rating": "Excellent",
+      "certifications": [
+        "LEED Platinum"
+      ]
+    },
+    {
+      "building_id": "BLD-006",
+      "name": "Healthcare Facility",
+      "location": "Stockholm",
+      "floor_area_m2": 5800,
+      "building_type": "Healthcare",
+      "year_built": 2010,
+      "energy_intensity_kwh_m2": 156.4,
+      "co2_intensity_kg_m2": 35.2,
+      "energy_percentile": 92,
+      "rating": "Poor",
+      "certifications": []
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 6,
+    "total_in_demo": 6,
+    "full_dataset_size": 6,
+    "has_more": false
+  }
+}
