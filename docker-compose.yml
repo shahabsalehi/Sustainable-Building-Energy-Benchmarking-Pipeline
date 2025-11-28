@@ -7,14 +7,14 @@ services:
     environment:
       # Demo credentials only; change for any real deployment.
       POSTGRES_DB: hvac_faults
-      POSTGRES_USER: hvac_user
-      POSTGRES_PASSWORD: hvac_password
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hvac_user -d hvac_faults"]
+      test: ["CMD-SHELL", "pg_isready -U user -d hvac_faults"]
       interval: 10s
       timeout: 5s
       retries: 5

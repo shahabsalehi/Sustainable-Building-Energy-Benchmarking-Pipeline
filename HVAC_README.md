@@ -90,8 +90,8 @@ docker-compose up -d
 
 This will start PostgreSQL on `localhost:5432` with:
 - Database: `hvac_faults`
-- User: `hvac_user`
-- Password: `hvac_password`
+- User: `user`
+- Password: `password`
 
 ## Quick Start
 
@@ -478,7 +478,7 @@ Create a `.env` file for custom configuration:
 
 ```bash
 # Database
-DATABASE_URL=postgresql://hvac_user:hvac_password@localhost:5432/hvac_faults
+DATABASE_URL=postgresql://user:password@localhost:5432/hvac_faults
 
 # API
 API_HOST=0.0.0.0
@@ -495,8 +495,8 @@ Edit `docker-compose.yml` to change PostgreSQL settings:
 ```yaml
 environment:
   POSTGRES_DB: hvac_faults
-  POSTGRES_USER: hvac_user
-  POSTGRES_PASSWORD: hvac_password
+  POSTGRES_USER: user
+  POSTGRES_PASSWORD: password
 ports:
   - "5432:5432"
 ```

@@ -18,7 +18,7 @@ def get_db_url():
     """Get database URL from environment or use default."""
     return os.getenv(
         'DATABASE_URL',
-        'postgresql://hvac_user:hvac_password@localhost:5432/hvac_faults'
+        'postgresql://user:password@localhost:5432/hvac_faults'
     )
 
 

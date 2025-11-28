@@ -5,8 +5,11 @@ This module contains functions for benchmarking building energy performance
 against similar buildings and industry standards.
 """
 
+import logging
 import pandas as pd
 from typing import Dict, Any
+
+logger = logging.getLogger(__name__)
 
 
 def benchmark_building(building_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -42,15 +45,27 @@ def benchmark_building(building_data: Dict[str, Any]) -> Dict[str, Any]:
     energy_consumption = building_data.get('energy_consumption', 0)
     eui = energy_consumption / area if area > 0 else 0
     
-    # Placeholder for performance rating logic
-    # TODO: Implement comparison with benchmark database
+    # Performance rating based on simplified EUI thresholds
+    # 
+    # IMPORTANT: These are demo thresholds only, not suitable for real use.
+    # Real benchmarking should use:
+    #   - Building type-specific thresholds (office vs retail vs residential)
+    #   - Climate zone adjustments
+    #   - ENERGY STAR Portfolio Manager or ASHRAE Standard 100 reference data
+    #   - Local building codes and standards
+    #
+    # Example real-world EUI ranges (kWh/m²/year) for offices:
+    #   - ENERGY STAR certified: typically < 100
+    #   - US median office: ~150-200
+    #   - Poor performers: > 250
     performance_rating = "Average"
     if eui < 100:
         performance_rating = "Good"
     elif eui > 200:
         performance_rating = "Poor"
     
-    # Placeholder recommendations
+    # Generate recommendations based on building characteristics
+    # In real use, these would be derived from detailed analysis
     recommendations = [
         "Consider LED lighting upgrades",
         "Review HVAC system efficiency",
@@ -70,11 +85,34 @@ def load_benchmark_data(filepath: str) -> pd.DataFrame:
     Load benchmark reference data from file.
     
     Args:
-        filepath: Path to the benchmark data file
+        filepath: Path to the benchmark data file (CSV or Parquet format)
         
     Returns:
         DataFrame containing benchmark reference data
+        
+    Raises:
+        FileNotFoundError: If the specified file does not exist
+        ValueError: If the file format is not supported (not .csv or .parquet)
+        
+    Note:
+        This function supports CSV and Parquet formats.
+        For production use, connect to ENERGY STAR Portfolio Manager API
+        or similar benchmark databases for real-time comparisons.
     """
-    # Placeholder for loading benchmark data
-    # TODO: Implement actual data loading logic
-    return pd.DataFrame()
+    import os
+    
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(
+            f"Benchmark data file not found: {filepath}. "
+            "Run 'make generate-data' to create sample data, or provide a valid file path."
+        )
+    
+    if filepath.endswith('.parquet'):
+        return pd.read_parquet(filepath)
+    elif filepath.endswith('.csv'):
+        return pd.read_csv(filepath)
+    else:
+        raise ValueError(
+            f"Unsupported file format: {filepath}. "
+            "Expected .csv or .parquet extension."
+        )
