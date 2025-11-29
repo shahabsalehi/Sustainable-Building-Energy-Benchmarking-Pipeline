@@ -1,0 +1,128 @@
+# Sustainable Building Energy Benchmarking Pipeline - Generate & Publish to HF
+#
+# This workflow:
+#   - Runs on a daily schedule (00:00 UTC) or manual trigger
+#   - Generates sample building energy benchmarking data
+#   - Exports JSON artifacts
+#   - Validates JSON schema
+#   - Pushes to Hugging Face Datasets (with data-diff skip)
+#
+# Setup:
+#   1. Add HF_TOKEN to GitHub Secrets (Settings → Secrets → Actions)
+#   2. Create HF Dataset repo: shahabsalehi/building-benchmarking
+
+name: Generate & Publish to HF
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      force_push:
+        description: 'Force push even if data unchanged'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PIPELINE_NAME: 'building-benchmarking'
+  JSON_OUTPUT: 'artifacts/json/building_benchmarking.json'
+  HF_DATASET_NAME: 'shahabsalehi/building-benchmarking'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        id: cache-pip
+        with:
+          path: |
+            ~/.cache/pip
+            .venv
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate sample data
+        run: |
+          source .venv/bin/activate
+          make sample-data
+
+      - name: Export JSON artifacts
+        run: |
+          source .venv/bin/activate
+          make export-json
+
+      - name: Validate JSON schema
+        run: |
+          source .venv/bin/activate
+          make validate-json
+
+      - name: Check for data changes
+        id: data-diff
+        run: |
+          CURRENT_SHA=$(sha256sum ${{ env.JSON_OUTPUT }} | cut -d' ' -f1)
+          echo "current_sha=$CURRENT_SHA" >> $GITHUB_OUTPUT
+          
+          if [ -f .last_push_sha ]; then
+            LAST_SHA=$(cat .last_push_sha)
+            if [ "$CURRENT_SHA" = "$LAST_SHA" ] && [ "${{ inputs.force_push }}" != "true" ]; then
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "::notice::Data unchanged, skipping HF push"
+            else
+              echo "changed=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push to Hugging Face Datasets
+        if: steps.data-diff.outputs.changed == 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          source .venv/bin/activate
+          python scripts/push_to_huggingface.py \
+            --json-path "${{ env.JSON_OUTPUT }}" \
+            --dataset-name "${{ env.HF_DATASET_NAME }}" \
+            --commit-message "Auto-update: $(date -u +%Y-%m-%d)"
+
+      - name: Cache push SHA
+        if: steps.data-diff.outputs.changed == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .last_push_sha
+          key: ${{ runner.os }}-push-sha-${{ steps.data-diff.outputs.current_sha }}
+
+      - name: Summary
+        run: |
+          echo "## ${{ env.PIPELINE_NAME }} Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Sample Data | ✅ Generated |" >> $GITHUB_STEP_SUMMARY
+          echo "| Export JSON | ✅ ${{ env.JSON_OUTPUT }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.data-diff.outputs.changed }}" = "true" ]; then
+            echo "| HF Push | ✅ Published to ${{ env.HF_DATASET_NAME }} |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| HF Push | ⏭️ Skipped (no changes) |" >> $GITHUB_STEP_SUMMARY
+          fi

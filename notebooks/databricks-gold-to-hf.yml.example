@@ -1,0 +1,263 @@
+# Databricks Gold → Hugging Face Daily Sync
+#
+# This workflow:
+#   - Optionally updates the Databricks Repo (syncs notebook from GitHub)
+#   - Triggers a Databricks job to run the medallion pipeline
+#   - Downloads the Gold summary JSON from DBFS
+#   - Pushes to Hugging Face Datasets
+#
+# Prerequisites:
+#   1. Create a Databricks Job that runs notebooks/benchmarking_medallion.py
+#   2. Add secrets to GitHub:
+#      - HF_TOKEN: Hugging Face write token
+#      - DATABRICKS_HOST: e.g., https://dbc-xxxxx.cloud.databricks.com
+#      - DATABRICKS_TOKEN: Databricks Personal Access Token
+#      - DATABRICKS_JOB_ID: ID of the job to trigger
+#      - DATABRICKS_REPO_ID: (Optional) Repo ID for auto-sync
+
+name: Databricks Gold → HF
+
+on:
+  schedule:
+    # Run daily at 01:00 UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      sync_repo:
+        description: 'Sync Databricks Repo before running job'
+        required: false
+        default: true
+        type: boolean
+      trigger_job:
+        description: 'Trigger Databricks job'
+        required: false
+        default: true
+        type: boolean
+      force_push:
+        description: 'Force push to HF even if data unchanged'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  DBFS_GOLD_PATH: '/FileStore/benchmarking/gold_summary.json'
+  LOCAL_GOLD_PATH: 'artifacts/json/gold_summary.json'
+  HF_DATASET_NAME: 'shahabsalehi/building-benchmarking'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  sync-gold-to-hf:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-databricks-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install databricks-cli huggingface_hub requests
+
+      # Sync Databricks Repo with latest GitHub code
+      - name: Sync Databricks Repo
+        if: inputs.sync_repo != false
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_REPO_ID: ${{ secrets.DATABRICKS_REPO_ID }}
+        run: |
+          if [ -z "$DATABRICKS_REPO_ID" ]; then
+            echo "⚠️ DATABRICKS_REPO_ID not set, skipping repo sync"
+            exit 0
+          fi
+          
+          echo "🔄 Syncing Databricks Repo to branch: main..."
+          
+          RESPONSE=$(curl -s -X PATCH \
+            "$DATABRICKS_HOST/api/2.0/repos/$DATABRICKS_REPO_ID" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"branch": "main"}')
+          
+          if echo "$RESPONSE" | grep -q "error"; then
+            echo "❌ Sync failed: $RESPONSE"
+            exit 1
+          fi
+          
+          echo "✅ Databricks Repo synced to latest main"
+
+      # Trigger Databricks job and wait for completion
+      - name: Trigger Databricks Job
+        if: inputs.trigger_job != false
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_JOB_ID: ${{ secrets.DATABRICKS_JOB_ID }}
+        run: |
+          if [ -z "$DATABRICKS_JOB_ID" ]; then
+            echo "⚠️ DATABRICKS_JOB_ID not set, skipping job trigger"
+            exit 0
+          fi
+          
+          echo "🚀 Triggering Databricks job $DATABRICKS_JOB_ID..."
+          
+          # Trigger the job
+          RUN_RESPONSE=$(curl -s -X POST \
+            "$DATABRICKS_HOST/api/2.1/jobs/run-now" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"job_id\": $DATABRICKS_JOB_ID}")
+          
+          RUN_ID=$(echo $RUN_RESPONSE | jq -r '.run_id')
+          echo "Started run: $RUN_ID"
+          
+          # Wait for job to complete (max 30 minutes)
+          for i in {1..60}; do
+            sleep 30
+            STATUS=$(curl -s \
+              "$DATABRICKS_HOST/api/2.1/jobs/runs/get?run_id=$RUN_ID" \
+              -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+              | jq -r '.state.life_cycle_state')
+            
+            echo "Run status: $STATUS"
+            
+            if [ "$STATUS" = "TERMINATED" ]; then
+              RESULT=$(curl -s \
+                "$DATABRICKS_HOST/api/2.1/jobs/runs/get?run_id=$RUN_ID" \
+                -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+                | jq -r '.state.result_state')
+              
+              if [ "$RESULT" = "SUCCESS" ]; then
+                echo "✅ Databricks job completed successfully"
+                break
+              else
+                echo "❌ Databricks job failed: $RESULT"
+                exit 1
+              fi
+            fi
+          done
+
+      - name: Download Gold JSON from DBFS
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          mkdir -p $(dirname ${{ env.LOCAL_GOLD_PATH }})
+          
+          echo "Downloading from DBFS: ${{ env.DBFS_GOLD_PATH }}"
+          
+          # Use Databricks REST API to download file
+          curl -s -X GET \
+            "$DATABRICKS_HOST/api/2.0/dbfs/read?path=${{ env.DBFS_GOLD_PATH }}" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+            | jq -r '.data' | base64 -d > ${{ env.LOCAL_GOLD_PATH }}
+          
+          # Verify download
+          if [ -s ${{ env.LOCAL_GOLD_PATH }} ]; then
+            echo "✅ Downloaded $(wc -c < ${{ env.LOCAL_GOLD_PATH }}) bytes"
+            cat ${{ env.LOCAL_GOLD_PATH }} | head -20
+          else
+            echo "❌ Download failed or file is empty"
+            exit 1
+          fi
+
+      - name: Validate Gold JSON
+        run: |
+          python -c "
+          import json
+          import sys
+          
+          with open('${{ env.LOCAL_GOLD_PATH }}') as f:
+              data = json.load(f)
+          
+          required = ['pipeline', 'layer', 'generated_at', 'synthetic', 'portfolio_summary']
+          missing = [f for f in required if f not in data]
+          
+          if missing:
+              print(f'❌ Missing fields: {missing}')
+              sys.exit(1)
+          
+          if data.get('layer') != 'gold':
+              print(f'⚠️ Warning: layer is {data.get(\"layer\")}, expected gold')
+          
+          print('✅ Gold JSON validation passed')
+          print(f'   Pipeline: {data.get(\"pipeline\")}')
+          print(f'   Generated: {data.get(\"generated_at\")}')
+          print(f'   Buildings: {data.get(\"portfolio_summary\", {}).get(\"total_buildings\", \"?\")}')
+          "
+
+      - name: Push to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python << 'EOF'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          from datetime import datetime, timezone
+          
+          from huggingface_hub import HfApi, CommitOperationAdd, hf_hub_download
+          from huggingface_hub.utils import EntryNotFoundError
+          
+          json_path = Path("${{ env.LOCAL_GOLD_PATH }}")
+          dataset_name = "${{ env.HF_DATASET_NAME }}"
+          force_push = "${{ inputs.force_push }}" == "true"
+          
+          # Compute SHA
+          with open(json_path, "rb") as f:
+              local_sha = hashlib.sha256(f.read()).hexdigest()
+          print(f"Local SHA: {local_sha[:16]}...")
+          
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          
+          # Check if data changed
+          if not force_push:
+              try:
+                  sha_path = hf_hub_download(dataset_name, ".gold_sha256", repo_type="dataset")
+                  with open(sha_path) as f:
+                      remote_sha = f.read().strip()
+                  if remote_sha == local_sha:
+                      print("✅ Data unchanged, skipping push")
+                      exit(0)
+              except EntryNotFoundError:
+                  pass  # First push
+          
+          # Push to HF
+          timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+          operations = [
+              CommitOperationAdd(path_in_repo="gold_summary.json", path_or_fileobj=str(json_path)),
+              CommitOperationAdd(path_in_repo=".gold_sha256", path_or_fileobj=local_sha.encode()),
+          ]
+          
+          api.create_commit(
+              repo_id=dataset_name,
+              repo_type="dataset",
+              operations=operations,
+              commit_message=f"Databricks Gold sync: {timestamp}",
+          )
+          print(f"✅ Pushed to {dataset_name}")
+          EOF
+
+      - name: Summary
+        run: |
+          echo "## Databricks Gold → HF Sync" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| DBFS Download | ✅ ${{ env.DBFS_GOLD_PATH }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| HF Push | ✅ ${{ env.HF_DATASET_NAME }} |" >> $GITHUB_STEP_SUMMARY

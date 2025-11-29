@@ -1,4 +1,4 @@
-.PHONY: help install sample-data test test-cov clean run-api run-dashboard docker-up docker-down export-json validate-json venv
+.PHONY: help install sample-data test test-cov clean run-api run-dashboard docker-up docker-down export-json validate-json push-gold-to-hf export-parquet venv
 
 # Virtual environment
 VENV := .venv
@@ -23,6 +23,10 @@ help:
 	@echo "  make docker-down   - Stop PostgreSQL database"
 	@echo "  make run-api       - Start the API server (port 8000)"
 	@echo "  make run-dashboard - Start the Streamlit dashboard (port 8501)"
+	@echo ""
+	@echo "Databricks Integration:"
+	@echo "  make export-parquet  - Export Gold JSON to Parquet files"
+	@echo "  make push-gold-to-hf - Push Gold summary to HF Dataset"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean         - Remove generated data and caches"
@@ -97,3 +101,18 @@ export-demo-json: venv
 validate-json: venv
 	@echo "Validating JSON schema..."
 	$(PYTHON) src/validate_json.py
+
+export-parquet: venv
+	@echo "Exporting Gold JSON to Parquet files..."
+	@mkdir -p artifacts/parquet
+	$(PYTHON) scripts/export_gold_parquet.py \
+		--json-path artifacts/json/gold_summary.json \
+		--output-dir artifacts/parquet
+	@echo "Done! Output: artifacts/parquet/"
+
+push-gold-to-hf: venv
+	@echo "Pushing Databricks Gold summary to Hugging Face..."
+	$(PYTHON) scripts/databricks_to_hf.py \
+		--json-path artifacts/json/gold_summary.json \
+		--dataset-name shahabsalehi/building-benchmarking
+	@echo "Done!"

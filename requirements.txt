@@ -25,3 +25,10 @@ plotly>=5.17.0
 # Testing
 pytest>=7.4.0
 pytest-cov>=4.1.0
+
+# Hugging Face Hub (for dataset publishing)
+huggingface_hub>=0.19.0
+
+# Databricks CLI (optional, for Gold export from DBFS)
+# Uncomment if using databricks_to_hf.py with DBFS download
+# databricks-cli>=0.18.0

@@ -535,6 +535,61 @@ The benchmarking API (`api/main.py`) already supports database-backed queries an
 - To add new API endpoints, modify `api/main.py`
 - To add data sources, update the ETL functions in `generate_sample_data.py`
 
+## Databricks Integration (Medallion Architecture)
+
+This pipeline includes a Databricks notebook for enterprise-scale processing using the medallion architecture.
+
+### Architecture
+
+```
+Raw CSV → Bronze (Delta) → Silver (Delta) → Gold (Delta) → JSON → HF Dataset
+```
+
+| Layer | Description | Location |
+|-------|-------------|----------|
+| **Bronze** | Raw ingested data with metadata | `/FileStore/benchmarking/bronze` |
+| **Silver** | Cleaned, validated, enriched data | `/FileStore/benchmarking/silver` |
+| **Gold** | Aggregated business metrics | `/FileStore/benchmarking/gold` |
+
+### Setup
+
+1. **Create Databricks Workspace** (Community Edition is free)
+2. **Import Notebook**: Upload `notebooks/benchmarking_medallion.py`
+3. **Configure Cluster**: Single-node, auto-terminate enabled
+4. **Run Pipeline**: Execute the notebook cells in sequence
+
+### Push Gold to HF
+
+After running the Databricks pipeline, export the Gold summary to Hugging Face:
+
+```bash
+# Option 1: From local JSON (after downloading from DBFS)
+make push-gold-to-hf
+
+# Option 2: Direct from DBFS (requires databricks-cli)
+python scripts/databricks_to_hf.py \
+    --dbfs-path /FileStore/benchmarking/gold_summary.json \
+    --dataset-name shahabsalehi/building-benchmarking
+```
+
+### Secrets
+
+| Secret | Purpose |
+|--------|---------|
+| `HF_TOKEN` | Write access to HF Dataset |
+| `DATABRICKS_HOST` | (Optional) Databricks workspace URL |
+| `DATABRICKS_TOKEN` | (Optional) Databricks PAT |
+
+### Lineage
+
+The Gold layer maintains the same JSON schema as the standard `make export-json` output, ensuring frontend compatibility:
+
+```
+Databricks Gold → gold_summary.json → HF Dataset → Frontend
+                                                  ↓
+Local Pipeline → building_benchmarking.json → HF Dataset → Frontend
+```
+
 ## Technologies
 
 - **Python 3.8+**
@@ -548,6 +603,8 @@ The benchmarking API (`api/main.py`) already supports database-backed queries an
 - **Plotly** - Interactive visualizations
 - **Pytest** - Testing framework
 - **Uvicorn** - ASGI server
+- **Databricks** - Enterprise Spark processing (optional)
+- **Delta Lake** - ACID transactions for medallion layers
 
 ## License
 
@@ -572,3 +629,5 @@ make test         # Run test suite
 ## Maintenance Notes
 - For larger benchmarking datasets, adjust generator parameters and switch API mode for pagination.
 - For HVAC fault demos beyond the light slice here, use the dedicated `HVAC-Fault-Detection-with-Anomaly-Pipeline`.
+- For Databricks workflows, the medallion notebook is portable to Unity Catalog with minimal changes.
+

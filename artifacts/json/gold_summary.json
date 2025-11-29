@@ -1,0 +1,184 @@
+{
+  "pipeline": "Sustainable-Building-Energy-Benchmarking",
+  "layer": "gold",
+  "generated_at": "2025-11-29T12:00:00+00:00",
+  "synthetic": true,
+  "disclaimer": "This data is synthetically generated for demonstration purposes only. Do not use for production analytics or decision-making.",
+  "portfolio_summary": {
+    "total_buildings": 100,
+    "total_energy_kwh": 25384210.45,
+    "total_area_sqm": 512340.67,
+    "portfolio_avg_eui": 186.24
+  },
+  "by_building_type": [
+    {
+      "building_type": "educational",
+      "building_count": 18,
+      "total_area_sqm": 89234.12,
+      "total_energy_kwh": 4521340.23,
+      "avg_eui": 156.78,
+      "min_eui": 78.34,
+      "max_eui": 245.67,
+      "stddev_eui": 45.23,
+      "avg_building_age": 28.5,
+      "hvac_count": 14,
+      "solar_count": 6,
+      "hvac_percentage": 77.8,
+      "solar_percentage": 33.3
+    },
+    {
+      "building_type": "industrial",
+      "building_count": 22,
+      "total_area_sqm": 156780.45,
+      "total_energy_kwh": 8234560.78,
+      "avg_eui": 215.34,
+      "min_eui": 125.67,
+      "max_eui": 312.45,
+      "stddev_eui": 52.18,
+      "avg_building_age": 35.2,
+      "hvac_count": 18,
+      "solar_count": 4,
+      "hvac_percentage": 81.8,
+      "solar_percentage": 18.2
+    },
+    {
+      "building_type": "office",
+      "building_count": 25,
+      "total_area_sqm": 125670.34,
+      "total_energy_kwh": 5678230.45,
+      "avg_eui": 178.92,
+      "min_eui": 92.15,
+      "max_eui": 267.89,
+      "stddev_eui": 48.67,
+      "avg_building_age": 22.8,
+      "hvac_count": 23,
+      "solar_count": 10,
+      "hvac_percentage": 92.0,
+      "solar_percentage": 40.0
+    },
+    {
+      "building_type": "residential",
+      "building_count": 20,
+      "total_area_sqm": 78450.23,
+      "total_energy_kwh": 3245780.12,
+      "avg_eui": 145.67,
+      "min_eui": 65.23,
+      "max_eui": 198.45,
+      "stddev_eui": 38.92,
+      "avg_building_age": 18.6,
+      "hvac_count": 12,
+      "solar_count": 8,
+      "hvac_percentage": 60.0,
+      "solar_percentage": 40.0
+    },
+    {
+      "building_type": "retail",
+      "building_count": 15,
+      "total_area_sqm": 62205.53,
+      "total_energy_kwh": 3704298.87,
+      "avg_eui": 198.45,
+      "min_eui": 112.34,
+      "max_eui": 289.78,
+      "stddev_eui": 56.34,
+      "avg_building_age": 25.4,
+      "hvac_count": 13,
+      "solar_count": 3,
+      "hvac_percentage": 86.7,
+      "solar_percentage": 20.0
+    }
+  ],
+  "performance_distribution": [
+    {
+      "performance_category": "Excellent",
+      "count": 15,
+      "avg_eui": 82.45
+    },
+    {
+      "performance_category": "Good",
+      "count": 28,
+      "avg_eui": 128.67
+    },
+    {
+      "performance_category": "Average",
+      "count": 32,
+      "avg_eui": 175.23
+    },
+    {
+      "performance_category": "Poor",
+      "count": 25,
+      "avg_eui": 256.89
+    }
+  ],
+  "top_efficient_buildings": [
+    {
+      "building_id": "B042",
+      "building_type": "residential",
+      "eui": 65.23,
+      "energy_consumption": 45670.12,
+      "area": 700.15
+    },
+    {
+      "building_id": "B078",
+      "building_type": "office",
+      "eui": 72.18,
+      "energy_consumption": 82340.45,
+      "area": 1140.78
+    },
+    {
+      "building_id": "B015",
+      "building_type": "educational",
+      "eui": 78.34,
+      "energy_consumption": 156780.23,
+      "area": 2001.53
+    },
+    {
+      "building_id": "B091",
+      "building_type": "residential",
+      "eui": 81.56,
+      "energy_consumption": 52340.67,
+      "area": 641.78
+    },
+    {
+      "building_id": "B063",
+      "building_type": "office",
+      "eui": 85.92,
+      "energy_consumption": 124560.34,
+      "area": 1450.12
+    },
+    {
+      "building_id": "B028",
+      "building_type": "residential",
+      "eui": 89.45,
+      "energy_consumption": 67890.23,
+      "area": 759.05
+    },
+    {
+      "building_id": "B054",
+      "building_type": "office",
+      "eui": 92.15,
+      "energy_consumption": 178450.67,
+      "area": 1936.45
+    },
+    {
+      "building_id": "B007",
+      "building_type": "residential",
+      "eui": 94.78,
+      "energy_consumption": 71230.45,
+      "area": 751.58
+    },
+    {
+      "building_id": "B036",
+      "building_type": "educational",
+      "eui": 96.23,
+      "energy_consumption": 234560.78,
+      "area": 2437.65
+    },
+    {
+      "building_id": "B082",
+      "building_type": "office",
+      "eui": 98.45,
+      "energy_consumption": 145670.34,
+      "area": 1479.64
+    }
+  ]
+}
